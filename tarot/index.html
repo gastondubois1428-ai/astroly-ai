@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Astroly AI — Tarot Reading</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --void: #05030a;
+  --deep: #0d0820;
+  --gold: #D4AF37;
+  --gold-light: #F0D060;
+  --gold-dim: rgba(212,175,55,0.3);
+  --violet: #8B5CF6;
+  --star: #E8E0FF;
+  --star-dim: rgba(232,224,255,0.5);
+  --border: rgba(212,175,55,0.15);
+  --border-strong: rgba(212,175,55,0.35);
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Jost', sans-serif; background: var(--void); color: var(--star); min-height: 100vh; overflow-x: hidden; }
+
+#stars-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+/* NAV */
+nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; background: linear-gradient(to bottom, rgba(5,3,10,0.95), transparent); backdrop-filter: blur(8px); }
+.nav-logo { font-family: 'Cinzel', serif; font-size: 1.2rem; color: var(--gold); cursor: pointer; letter-spacing: 0.15em; }
+.back-link { font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--star-dim); cursor: pointer; transition: color 0.2s; text-decoration: none; }
+.back-link:hover { color: var(--gold); }
+
+/* HERO */
+.tarot-hero { padding: 7rem 2rem 3rem; text-align: center; position: relative; z-index: 1; }
+.tarot-hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.15) 0%, transparent 60%); pointer-events: none; }
+.hero-eyebrow { font-size: 0.65rem; letter-spacing: 0.4em; text-transform: uppercase; color: var(--gold); margin-bottom: 1.2rem; display: flex; align-items: center; justify-content: center; gap: 1rem; }
+.hero-eyebrow::before, .hero-eyebrow::after { content: '✦'; font-size: 0.5rem; }
+.hero-title { font-family: 'Cinzel', serif; font-size: clamp(2rem, 5vw, 3.5rem); color: var(--star); margin-bottom: 0.5rem; }
+.hero-sub { font-family: 'Crimson Pro', serif; font-style: italic; font-size: 1.1rem; color: var(--star-dim); max-width: 480px; margin: 0 auto; }
+
+/* QUESTION FORM */
+.question-form { max-width: 600px; margin: 3rem auto; padding: 0 2rem; position: relative; z-index: 1; }
+.question-label { font-size: 0.65rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--gold); margin-bottom: 0.8rem; display: block; text-align: center; }
+.question-input { width: 100%; padding: 1rem 1.2rem; background: rgba(255,255,255,0.04); border: 1px solid var(--border-strong); color: var(--star); font-family: 'Crimson Pro', serif; font-size: 1.1rem; font-style: italic; outline: none; text-align: center; transition: border-color 0.2s; }
+.question-input:focus { border-color: var(--gold); background: rgba(212,175,55,0.04); }
+.question-input::placeholder { color: var(--star-dim); }
+
+.spread-btns { display: flex; gap: 0.8rem; justify-content: center; margin-top: 1.5rem; flex-wrap: wrap; }
+.spread-btn { font-family: 'Jost', sans-serif; font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 0.5rem 1.2rem; border: 1px solid var(--border); background: transparent; color: var(--star-dim); cursor: pointer; transition: all 0.2s; }
+.spread-btn:hover, .spread-btn.active { border-color: var(--gold); color: var(--gold); background: var(--gold-dim); }
+
+/* DECK AREA */
+.deck-area { max-width: 900px; margin: 0 auto; padding: 2rem; position: relative; z-index: 1; }
+.deck-title { font-family: 'Cinzel', serif; font-size: 0.8rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); text-align: center; margin-bottom: 2rem; }
+
+/* SHUFFLED DECK */
+.deck-pile { display: flex; justify-content: center; align-items: center; margin: 2rem 0; height: 220px; position: relative; }
+.deck-card-back {
+  width: 120px; height: 200px;
+  position: absolute;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #1a0f35, #2d1760);
+  border: 2px solid var(--gold-dim);
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 20px rgba(139,92,246,0.3);
+}
+.deck-card-back:nth-child(1) { transform: rotate(-6deg) translateX(-30px); }
+.deck-card-back:nth-child(2) { transform: rotate(-2deg) translateX(-10px); }
+.deck-card-back:nth-child(3) { transform: rotate(2deg) translateX(10px); }
+.deck-card-back:nth-child(4) { transform: rotate(6deg) translateX(30px); }
+.deck-card-back:hover { transform: translateY(-10px) rotate(0deg) scale(1.05) !important; border-color: var(--gold); box-shadow: 0 12px 40px rgba(212,175,55,0.4); }
+.card-back-pattern { font-size: 2rem; opacity: 0.4; }
+
+.shuffle-btn {
+  display: block; margin: 0 auto 2rem;
+  font-family: 'Cinzel', serif; font-size: 0.85rem; letter-spacing: 0.2em;
+  padding: 0.9rem 3rem; cursor: pointer;
+  background: linear-gradient(135deg, #1a0f35, #2d1760);
+  color: var(--gold); border: 1px solid var(--gold);
+  transition: all 0.25s;
+}
+.shuffle-btn:hover { box-shadow: 0 4px 30px rgba(212,175,55,0.3); transform: translateY(-2px); }
+
+/* SPREAD */
+.spread-area { display: none; }
+.spread-area.visible { display: block; }
+
+.spread-label { text-align: center; font-family: 'Cinzel', serif; font-size: 0.75rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--star-dim); margin-bottom: 2.5rem; }
+
+.cards-row { display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap; margin-bottom: 3rem; }
+
+/* CARD */
+.tarot-card-wrap { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+.card-position-label { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); }
+
+.tarot-card {
+  width: 140px; height: 240px;
+  perspective: 1000px;
+  cursor: pointer;
+}
+.tarot-card-inner {
+  width: 100%; height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.tarot-card.flipped .tarot-card-inner { transform: rotateY(180deg); }
+
+.tarot-card-front, .tarot-card-back-face {
+  position: absolute; inset: 0;
+  backface-visibility: hidden;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid var(--gold-dim);
+}
+
+.tarot-card-back-face {
+  background: linear-gradient(135deg, #1a0f35, #2d1760);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.5rem;
+  box-shadow: 0 4px 20px rgba(139,92,246,0.3);
+}
+.tarot-card-back-face .back-inner { opacity: 0.5; font-size: 2rem; }
+
+.tarot-card-front {
+  transform: rotateY(180deg);
+  background: #1a1030;
+  box-shadow: 0 8px 30px rgba(212,175,55,0.2);
+}
+.tarot-card-front img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.tarot-card-front .card-name-overlay {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: linear-gradient(to top, rgba(5,3,10,0.95), transparent);
+  padding: 0.8rem 0.5rem 0.5rem;
+  font-family: 'Cinzel', serif; font-size: 0.6rem;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--gold); text-align: center;
+}
+
+.card-reveal-hint { font-size: 0.6rem; letter-spacing: 0.1em; color: var(--star-dim); font-style: italic; }
+
+/* READING */
+.reading-area { max-width: 740px; margin: 0 auto; padding: 0 2rem 6rem; position: relative; z-index: 1; }
+.reading-area.hidden { display: none; }
+
+.reading-divider { display: flex; align-items: center; gap: 1.5rem; margin: 3rem 0; }
+.reading-divider-line { flex: 1; height: 1px; background: linear-gradient(to right, transparent, var(--gold-dim)); }
+.reading-divider-line:last-child { background: linear-gradient(to left, transparent, var(--gold-dim)); }
+.reading-divider-sym { font-family: 'Cinzel', serif; font-size: 0.7rem; letter-spacing: 0.3em; color: var(--gold); white-space: nowrap; }
+
+.loading-cosmic { text-align: center; padding: 3rem; }
+.cosmic-spinner { font-size: 3rem; display: block; margin: 0 auto 1rem; animation: cosmicSpin 3s linear infinite; }
+@keyframes cosmicSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.loading-text { font-family: 'Crimson Pro', serif; font-style: italic; color: var(--star-dim); font-size: 1.1rem; }
+.loading-dots span { display: inline-block; width: 5px; height: 5px; background: var(--gold); border-radius: 50%; margin: 0 2px; animation: dotPulse 1.2s infinite; }
+.loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dotPulse { 0%,80%,100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
+
+.card-reading { border-left: 2px solid var(--gold-dim); padding: 1.5rem 1.5rem; margin-bottom: 2rem; }
+.card-reading-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+.card-reading-sym { font-size: 1.5rem; }
+.card-reading-info { }
+.card-reading-position { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); }
+.card-reading-name { font-family: 'Cinzel', serif; font-size: 0.95rem; color: var(--star); }
+.card-reading-text { font-family: 'Crimson Pro', serif; font-size: 1.05rem; line-height: 1.85; color: rgba(232,224,255,0.8); }
+
+.synthesis { background: rgba(212,175,55,0.05); border: 1px solid var(--border); padding: 2rem; margin-top: 2rem; }
+.synthesis-title { font-family: 'Cinzel', serif; font-size: 0.8rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-bottom: 1.2rem; text-align: center; }
+.synthesis-text { font-family: 'Crimson Pro', serif; font-size: 1.1rem; line-height: 1.9; color: rgba(232,224,255,0.85); font-style: italic; }
+
+.new-reading-btn { display: block; margin: 3rem auto 0; font-family: 'Cinzel', serif; font-size: 0.85rem; letter-spacing: 0.2em; padding: 0.9rem 3rem; cursor: pointer; background: transparent; color: var(--gold); border: 1px solid var(--gold); transition: all 0.25s; }
+.new-reading-btn:hover { background: var(--gold-dim); transform: translateY(-2px); }
+
+/* TOAST */
+.toast { position: fixed; bottom: 2rem; right: 2rem; background: var(--deep); border: 1px solid var(--gold); color: var(--gold); padding: 0.8rem 1.4rem; font-family: 'Jost', sans-serif; font-size: 0.82rem; z-index: 600; transform: translateY(100px); opacity: 0; transition: all 0.3s; pointer-events: none; }
+.toast.show { transform: translateY(0); opacity: 1; }
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 640px) { .cards-row { gap: 1rem; } .tarot-card { width: 100px; height: 170px; } nav { padding: 0 1rem; } }
+</style>
+</head>
+<body>
+
+<canvas id="stars-canvas"></canvas>
+
+<nav>
+  <div class="nav-logo" onclick="window.location.href='/'">✦ ASTROLY AI</div>
+  <a class="back-link" onclick="window.location.href='/'">← Back to Astroly</a>
+</nav>
+
+<div class="tarot-hero">
+  <div class="hero-eyebrow">Ancient Wisdom · AI Interpretation</div>
+  <h1 class="hero-title">✦ Tarot Reading ✦</h1>
+  <p class="hero-sub">Shuffle the deck, choose three cards, and let the cosmos speak through the ancient symbols</p>
+</div>
+
+<!-- QUESTION -->
+<div class="question-form">
+  <label class="question-label">✦ What guidance do you seek? ✦</label>
+  <input type="text" class="question-input" id="question-input" placeholder="Ask the cards anything... or leave blank for a general reading">
+  <div class="spread-btns">
+    <button class="spread-btn active" onclick="setSpread('ppt', this)">Past · Present · Future</button>
+    <button class="spread-btn" onclick="setSpread('mind', this)">Mind · Body · Spirit</button>
+    <button class="spread-btn" onclick="setSpread('situation', this)">Situation · Action · Outcome</button>
+  </div>
+</div>
+
+<!-- DECK -->
+<div class="deck-area">
+  <div id="pre-shuffle">
+    <div class="deck-title">✦ Focus on your question, then shuffle the deck ✦</div>
+    <div class="deck-pile">
+      <div class="deck-card-back"><span class="card-back-pattern">🌙</span></div>
+      <div class="deck-card-back"><span class="card-back-pattern">⭐</span></div>
+      <div class="deck-card-back"><span class="card-back-pattern">🔮</span></div>
+      <div class="deck-card-back"><span class="card-back-pattern">✦</span></div>
+    </div>
+    <button class="shuffle-btn" onclick="shuffleDeck()">🔀 Shuffle the Deck</button>
+  </div>
+
+  <!-- SPREAD -->
+  <div class="spread-area" id="spread-area">
+    <div class="spread-label" id="spread-label">Click each card to reveal its message</div>
+    <div class="cards-row" id="cards-row"></div>
+    <button class="shuffle-btn" id="interpret-btn" onclick="interpretCards()" style="display:none;">✦ Reveal My Reading ✦</button>
+  </div>
+</div>
+
+<!-- READING -->
+<div class="reading-area hidden" id="reading-area">
+  <div class="reading-divider">
+    <div class="reading-divider-line"></div>
+    <div class="reading-divider-sym">✦ The Cards Speak ✦</div>
+    <div class="reading-divider-line"></div>
+  </div>
+
+  <div class="loading-cosmic" id="reading-loading" style="display:none;">
+    <span class="cosmic-spinner">🔮</span>
+    <div class="loading-text">The ancient symbols are aligning...</div>
+    <div class="loading-dots" style="margin-top:1rem;"><span></span><span></span><span></span></div>
+  </div>
+
+  <div id="reading-content"></div>
+
+  <button class="new-reading-btn" onclick="newReading()">🔀 New Reading</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════
+// STARS
+// ═══════════════════════════════════
+const canvas = document.getElementById('stars-canvas');
+const ctx = canvas.getContext('2d');
+let stars = [];
+function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+resizeCanvas(); window.addEventListener('resize', resizeCanvas);
+for (let i = 0; i < 150; i++) stars.push({ x: Math.random(), y: Math.random(), size: Math.random()*1.5+0.2, opacity: Math.random()*0.6+0.1, twinkle: Math.random()*Math.PI*2, speed: Math.random()*0.015+0.005 });
+function drawStars() { ctx.clearRect(0,0,canvas.width,canvas.height); stars.forEach(s => { s.twinkle+=s.speed; const op=s.opacity*(0.7+Math.sin(s.twinkle)*0.3); ctx.beginPath(); ctx.arc(s.x*canvas.width,s.y*canvas.height,s.size,0,Math.PI*2); ctx.fillStyle=`rgba(232,224,255,${op})`; ctx.fill(); }); requestAnimationFrame(drawStars); }
+drawStars();
+
+// ═══════════════════════════════════
+// TAROT DECK — Rider-Waite via Wikipedia
+// ═══════════════════════════════════
+const DECK = [
+  { name: 'The Fool', num: '0', img: 'https://upload.wikimedia.org/wikipedia/commons/9/90/RWS_Tarot_00_Fool.jpg', keywords: 'New beginnings, innocence, spontaneity' },
+  { name: 'The Magician', num: 'I', img: 'https://upload.wikimedia.org/wikipedia/commons/d/de/RWS_Tarot_01_Magician.jpg', keywords: 'Manifestation, power, skill' },
+  { name: 'The High Priestess', num: 'II', img: 'https://upload.wikimedia.org/wikipedia/commons/8/88/RWS_Tarot_02_High_Priestess.jpg', keywords: 'Intuition, mystery, inner knowledge' },
+  { name: 'The Empress', num: 'III', img: 'https://upload.wikimedia.org/wikipedia/commons/d/d2/RWS_Tarot_03_Empress.jpg', keywords: 'Abundance, femininity, nature' },
+  { name: 'The Emperor', num: 'IV', img: 'https://upload.wikimedia.org/wikipedia/commons/c/c3/RWS_Tarot_04_Emperor.jpg', keywords: 'Authority, structure, stability' },
+  { name: 'The Hierophant', num: 'V', img: 'https://upload.wikimedia.org/wikipedia/commons/8/8d/RWS_Tarot_05_Hierophant.jpg', keywords: 'Tradition, conformity, beliefs' },
+  { name: 'The Lovers', num: 'VI', img: 'https://upload.wikimedia.org/wikipedia/commons/3/3a/TheLovers.jpg', keywords: 'Love, harmony, choices' },
+  { name: 'The Chariot', num: 'VII', img: 'https://upload.wikimedia.org/wikipedia/commons/9/9b/RWS_Tarot_07_Chariot.jpg', keywords: 'Victory, will, determination' },
+  { name: 'Strength', num: 'VIII', img: 'https://upload.wikimedia.org/wikipedia/commons/f/f5/RWS_Tarot_08_Strength.jpg', keywords: 'Courage, inner power, patience' },
+  { name: 'The Hermit', num: 'IX', img: 'https://upload.wikimedia.org/wikipedia/commons/4/4d/RWS_Tarot_09_Hermit.jpg', keywords: 'Solitude, introspection, guidance' },
+  { name: 'Wheel of Fortune', num: 'X', img: 'https://upload.wikimedia.org/wikipedia/commons/3/3c/RWS_Tarot_10_Wheel_of_Fortune.jpg', keywords: 'Cycles, fate, turning point' },
+  { name: 'Justice', num: 'XI', img: 'https://upload.wikimedia.org/wikipedia/commons/e/e0/RWS_Tarot_11_Justice.jpg', keywords: 'Fairness, truth, cause and effect' },
+  { name: 'The Hanged Man', num: 'XII', img: 'https://upload.wikimedia.org/wikipedia/commons/2/2b/RWS_Tarot_12_Hanged_Man.jpg', keywords: 'Pause, surrender, new perspective' },
+  { name: 'Death', num: 'XIII', img: 'https://upload.wikimedia.org/wikipedia/commons/d/d7/RWS_Tarot_13_Death.jpg', keywords: 'Transformation, endings, change' },
+  { name: 'Temperance', num: 'XIV', img: 'https://upload.wikimedia.org/wikipedia/commons/f/f8/RWS_Tarot_14_Temperance.jpg', keywords: 'Balance, moderation, purpose' },
+  { name: 'The Devil', num: 'XV', img: 'https://upload.wikimedia.org/wikipedia/commons/5/55/RWS_Tarot_15_Devil.jpg', keywords: 'Shadow, addiction, materialism' },
+  { name: 'The Tower', num: 'XVI', img: 'https://upload.wikimedia.org/wikipedia/commons/5/53/RWS_Tarot_16_Tower.jpg', keywords: 'Upheaval, revelation, chaos' },
+  { name: 'The Star', num: 'XVII', img: 'https://upload.wikimedia.org/wikipedia/commons/d/db/RWS_Tarot_17_Star.jpg', keywords: 'Hope, inspiration, serenity' },
+  { name: 'The Moon', num: 'XVIII', img: 'https://upload.wikimedia.org/wikipedia/commons/7/7f/RWS_Tarot_18_Moon.jpg', keywords: 'Illusion, fear, unconscious' },
+  { name: 'The Sun', num: 'XIX', img: 'https://upload.wikimedia.org/wikipedia/commons/1/17/RWS_Tarot_19_Sun.jpg', keywords: 'Joy, success, vitality' },
+  { name: 'Judgement', num: 'XX', img: 'https://upload.wikimedia.org/wikipedia/commons/d/dd/RWS_Tarot_20_Judgement.jpg', keywords: 'Reflection, reckoning, awakening' },
+  { name: 'The World', num: 'XXI', img: 'https://upload.wikimedia.org/wikipedia/commons/f/ff/RWS_Tarot_21_World.jpg', keywords: 'Completion, integration, wholeness' },
+];
+
+// Spread types
+const SPREADS = {
+  ppt: ['Past', 'Present', 'Future'],
+  mind: ['Mind', 'Body', 'Spirit'],
+  situation: ['Situation', 'Action', 'Outcome']
+};
+
+let currentSpread = 'ppt';
+let selectedCards = [];
+let flippedCount = 0;
+
+function setSpread(type, btn) {
+  currentSpread = type;
+  document.querySelectorAll('.spread-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function shuffleDeck() {
+  // Pick 3 random cards
+  const shuffled = [...DECK].sort(() => Math.random() - 0.5);
+  selectedCards = shuffled.slice(0, 3);
+  flippedCount = 0;
+
+  document.getElementById('pre-shuffle').style.display = 'none';
+  document.getElementById('spread-area').classList.add('visible');
+  document.getElementById('reading-area').classList.add('hidden');
+
+  renderCards();
+  showToast('✦ The cards have been drawn — click to reveal');
+}
+
+function renderCards() {
+  const positions = SPREADS[currentSpread];
+  const row = document.getElementById('cards-row');
+  row.innerHTML = '';
+
+  selectedCards.forEach((card, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'tarot-card-wrap';
+    wrap.innerHTML = `
+      <div class="card-position-label">${positions[i]}</div>
+      <div class="tarot-card" id="card-${i}" onclick="flipCard(${i})">
+        <div class="tarot-card-inner">
+          <div class="tarot-card-back-face"><span class="back-inner">🌙</span></div>
+          <div class="tarot-card-front">
+            <img src="${card.img}" alt="${card.name}" loading="lazy" onerror="this.style.display='none';this.parentElement.style.background='linear-gradient(135deg,#1a0f35,#2d1760)';this.parentElement.innerHTML+='<div style=\'padding:1rem;text-align:center;font-family:Cinzel,serif;font-size:0.7rem;color:#D4AF37;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;\'>${card.name}</div>'">
+            <div class="card-name-overlay">${card.name}</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-reveal-hint" id="hint-${i}">Click to reveal</div>
+    `;
+    row.appendChild(wrap);
+  });
+}
+
+function flipCard(i) {
+  const card = document.getElementById(`card-${i}`);
+  if (card.classList.contains('flipped')) return;
+  card.classList.add('flipped');
+  document.getElementById(`hint-${i}`).textContent = selectedCards[i].keywords;
+  flippedCount++;
+  if (flippedCount === 3) {
+    setTimeout(() => {
+      document.getElementById('interpret-btn').style.display = 'block';
+    }, 600);
+  }
+}
+
+async function interpretCards() {
+  const question = document.getElementById('question-input').value.trim() || 'a general life reading';
+  const positions = SPREADS[currentSpread];
+
+  document.getElementById('reading-area').classList.remove('hidden');
+  document.getElementById('reading-loading').style.display = 'block';
+  document.getElementById('reading-content').innerHTML = '';
+  document.getElementById('interpret-btn').style.display = 'none';
+  document.getElementById('reading-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  const cardDescriptions = selectedCards.map((c, i) =>
+    `${positions[i]}: ${c.name} (${c.num}) — Keywords: ${c.keywords}`
+  ).join('\n');
+
+  const prompt = `You are a wise tarot reader. Interpret this three-card spread for someone asking about: "${question}"
+
+Cards drawn:
+${cardDescriptions}
+
+Spread type: ${positions.join(' · ')}
+
+Please provide:
+1. A brief interpretation for each card in its position (2-3 sentences each)
+2. A synthesis reading that weaves all three cards together into a cohesive message (3-4 sentences)
+
+Format your response exactly like this:
+CARD1: [interpretation of ${positions[0]} card]
+CARD2: [interpretation of ${positions[1]} card]  
+CARD3: [interpretation of ${positions[2]} card]
+SYNTHESIS: [overall message weaving the three cards together]
+
+Write in mystical, poetic, empowering language. Be specific to the cards drawn.`;
+
+  try {
+    const res = await fetch('/api/reading', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
+    const data = await res.json();
+    const text = data.content?.map(b => b.text || '').join('') || '';
+
+    // Parse response
+    const card1Match = text.match(/CARD1:\s*([\s\S]*?)(?=CARD2:|$)/);
+    const card2Match = text.match(/CARD2:\s*([\s\S]*?)(?=CARD3:|$)/);
+    const card3Match = text.match(/CARD3:\s*([\s\S]*?)(?=SYNTHESIS:|$)/);
+    const synthMatch = text.match(/SYNTHESIS:\s*([\s\S]*?)$/);
+
+    const card1Text = card1Match ? card1Match[1].trim() : '';
+    const card2Text = card2Match ? card2Match[1].trim() : '';
+    const card3Text = card3Match ? card3Match[1].trim() : '';
+    const synthText = synthMatch ? synthMatch[1].trim() : '';
+
+    const cardSymbols = ['🌅', '⭐', '🌙'];
+
+    let html = '';
+    [card1Text, card2Text, card3Text].forEach((cardText, i) => {
+      if (cardText) {
+        html += `
+          <div class="card-reading">
+            <div class="card-reading-header">
+              <div class="card-reading-sym">${cardSymbols[i]}</div>
+              <div class="card-reading-info">
+                <div class="card-reading-position">${positions[i]}</div>
+                <div class="card-reading-name">${selectedCards[i].name}</div>
+              </div>
+            </div>
+            <div class="card-reading-text">${cardText}</div>
+          </div>`;
+      }
+    });
+
+    if (synthText) {
+      html += `
+        <div class="synthesis">
+          <div class="synthesis-title">✦ The Complete Message ✦</div>
+          <div class="synthesis-text">${synthText}</div>
+        </div>`;
+    }
+
+    document.getElementById('reading-loading').style.display = 'none';
+    document.getElementById('reading-content').innerHTML = html;
+
+  } catch(e) {
+    document.getElementById('reading-loading').style.display = 'none';
+    document.getElementById('reading-content').innerHTML = `<p style="color:var(--star-dim);font-family:Crimson Pro,serif;text-align:center;font-style:italic;">The veil between worlds is thick tonight. Please try again.</p>`;
+  }
+}
+
+function newReading() {
+  document.getElementById('pre-shuffle').style.display = 'block';
+  document.getElementById('spread-area').classList.remove('visible');
+  document.getElementById('reading-area').classList.add('hidden');
+  document.getElementById('cards-row').innerHTML = '';
+  selectedCards = [];
+  flippedCount = 0;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+</script>
+</body>
+</html>
