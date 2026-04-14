@@ -409,21 +409,16 @@ async function generateReading() {
     const res = await fetch('/api/reading', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({prompt}) });
     const data = await res.json();
     const text = data.content?.map(b=>b.text||'').join('') || '';
-    let html = text
-  .replace(/Leo\* --- /g, '')
-  .replace(/--- ## /g, '')
-  .replace(/\*\*(.*?)\*\*/g, '|||TITLE|||$1|||END|||')
-  .replace(/\*(.*?)\*/g, '<em>$1</em>')
-  .split('|||TITLE|||')
-  .map((part, i) => {
-    if (i === 0) return part.split('\n').filter(p=>p.trim()).map(p=>`<p>${p}</p>`).join('');
-    const [title, ...rest] = part.split('|||END|||');
-    const body = rest.join('').trim().split('\n').filter(p=>p.trim()).map(p=>`<p>${p}</p>`).join('');
-    return `<div class="reading-section"><div class="reading-section-title">✦ ${title.trim()}</div>${body}</div>`;
-  }).join('');
-document.getElementById('reading-text').innerHTML = html || `<p>${text}</p>`;
-      }
-    }
+    const clean = text.replace(/^.*?(?=##|\*\*|[A-Z])/s, '').replace(/---/g,'').replace(/\*/g,'');
+    const parts = clean.split(/##\s*/);
+    let html = parts.map(part => {
+      const lines = part.trim().split('\n').filter(l=>l.trim());
+      if (!lines.length) return '';
+      const title = lines[0].trim();
+      const body = lines.slice(1).join(' ').trim();
+      if (body) return `<div class="reading-section"><div class="reading-section-title">✦ ${title}</div><p>${body}</p></div>`;
+      return `<p>${title}</p>`;
+    }).join('');
     document.getElementById('reading-text').innerHTML = html || `<p>${text}</p>`;
     document.getElementById('loading').style.display = 'none';
     document.getElementById('reading-result').classList.add('visible');
