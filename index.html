@@ -175,7 +175,21 @@ footer { background: linear-gradient(to top, #03020a, var(--void)); border-top: 
   </ul>
   <div class="nav-right">
    <button class="btn-nav-outline" onclick="openModal('login')">Sign In</button>
-<button class="btn-nav-primary" onclick="window.location.href='https://buy.stripe.com/test_7sY28t0wk3HW5Cn8En9IQ01'">Premium ✦</button>
+<button class="btn-nav-primary" onclick="document.getElementById('paypal-astroly').style.display='block';this.style.display='none'">Premium ✦</button>
+    <div id="paypal-astroly" style="display:none;margin-top:1rem;">
+<div id="paypal-button-container-P-90725697EM445945FNHRVD4Q"></div>
+<script src="https://www.paypal.com/sdk/js?client-id=AbG9F4ruHBYLNq_Z7X-PRDUfQK9iFvmOMPTiBW8SDFx__lLEnum3nqYLk6y4yq1koIndaGPIak8xxRiv&vault=true&intent=subscription"></script>
+<script>
+paypal.Buttons({
+  style:{shape:'rect',color:'gold',layout:'vertical',label:'subscribe'},
+  createSubscription:function(data,actions){return actions.subscription.create({plan_id:'P-90725697EM445945FNHRVD4Q'});},
+  onApprove:function(data,actions){
+    localStorage.setItem('astroly_premium','1');
+    window.location.href='/';
+  }
+}).render('#paypal-button-container-P-90725697EM445945FNHRVD4Q');
+</script>
+</div>
 <button class="btn-nav-primary" onclick="showPage('reading')">Get Reading ✦</button>
     
   </div>
